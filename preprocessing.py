@@ -127,7 +127,7 @@ if __name__ == '__main__':
             temp_df = pd.DataFrame({
                 'img': file[:-4],
                 'tile': f'_tile{i}',
-                'label': [labels[i]]
+                'label': [list(labels[i])]
             })
             meta_data.append(temp_df)
 
