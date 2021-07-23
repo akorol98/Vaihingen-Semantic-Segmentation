@@ -127,3 +127,15 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Data files
+data/*.zip
+data/ISPRS_semantic_labeling_Vaihingen
+data/ISPRS_semantic_labeling_Vaihingen_ground_truth_COMPLETE
+data/preprocessed
+
+# Checkpoints
+checkpoints
+
+# PyCharm IDE files
+.idea
