@@ -1,5 +1,6 @@
 import numpy as np
 from tqdm import tqdm
+import os
 
 import torch
 import torch.nn as nn
@@ -12,15 +13,21 @@ from tools.metrics import IoU
 configs = {
     'batch_size': 3,
     'lr': 0.0001,
-    'n_epochs': 20,
+    'n_epochs': 1,
     'num_workers': 0,
     'weight_decay': 1e-8,
+    'split': 'train',
+    'train_mode': 'train',
     'path_to_save': 'checkpoints/'
 }
 
+if not os.path.exists(configs['path_to_save']):
+    os.makedirs(configs['path_to_save'])
 
-def train(model, device, epochs, bs, lr, wd, nw):
-    dataset = ISPRS_Dataset('data/preprocessed', 'data/preprocessed/metadata.csv', 'train')
+
+def train(model, device, epochs, bs, lr, wd, nw, split, train_mode):
+    dataset = ISPRS_Dataset('data/preprocessed', 'data/preprocessed/metadata.csv',
+                            split=split, train_mode=train_mode)
     dataloader = DataLoader(dataset, shuffle=True, batch_size=bs, num_workers=nw)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, betas=(0.5, 0.999), weight_decay=wd)
@@ -87,7 +94,9 @@ if __name__ == '__main__':
         bs=configs['batch_size'],
         lr=configs['lr'],
         wd=configs['weight_decay'],
-        nw=configs['num_workers']
+        nw=configs['num_workers'],
+        split=configs['split'],
+        train_mode=configs['train_mode']
     )
 
     torch.save(model.state_dict(), configs['path_to_save'] + 'baseline_Unet.pth')

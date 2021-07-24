@@ -6,8 +6,6 @@ import os
 from tqdm import tqdm
 from natsort import natsorted
 
-data_path = 'data/ISPRS_semantic_labeling_Vaihingen/top'
-masks_path = 'data/ISPRS_semantic_labeling_Vaihingen_ground_truth_COMPLETE'
 
 def rgb_to_binary_mask(img: np.array, color_map: list = None) -> np.array:
     """
@@ -102,6 +100,9 @@ def makedirs(dirs: str):
 
 
 if __name__ == '__main__':
+
+    data_path = 'data/ISPRS_semantic_labeling_Vaihingen/top'
+    masks_path = 'data/ISPRS_semantic_labeling_Vaihingen_ground_truth_COMPLETE'
 
     makedirs('data/preprocessed/imgs')
     makedirs('data/preprocessed/masks')

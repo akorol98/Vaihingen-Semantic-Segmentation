@@ -133,6 +133,7 @@ data/*.zip
 data/ISPRS_semantic_labeling_Vaihingen
 data/ISPRS_semantic_labeling_Vaihingen_ground_truth_COMPLETE
 data/preprocessed
+data/weakly_masks
 
 # Checkpoints
 checkpoints

@@ -6,8 +6,9 @@ from torch.utils.data import Dataset
 
 class ISPRS_Dataset(Dataset):
 
-    def __init__(self, data_path, metadata_path, split='train'):
+    def __init__(self, data_path, metadata_path, split='train', train_mode='train'):
         self.data_path = data_path
+        self.train_mode = train_mode
 
         self.metadata = pd.read_csv(metadata_path)
         self.metadata = self.metadata[
@@ -24,7 +25,15 @@ class ISPRS_Dataset(Dataset):
         tile = self.metadata['tile'][idx]
 
         img = np.load(f'{self.data_path}/imgs/{img_name + tile}.npy')
-        mask = np.load(f'{self.data_path}/masks/{img_name + tile}.npy')
+        if self.train_mode == 'train':
+            mask = np.load(f'{self.data_path}/masks/{img_name + tile}.npy')
+        elif self.train_mode == 'weakly_train':
+            mask = np.load(f'{self.data_path}/weakly_masks/{img_name + tile}.npy')
+        elif self.train_mode == 'weakly_train_erosion':
+            mask = np.load(f'{self.data_path}/weakly_masks_erosion/{img_name + tile}.npy')
+        else:
+            assert False, 'Wrong training mode! One of the following values is available: ' \
+                          '["train", "weakly_train", "weakly_train_erosion"]'
         label = np.array(self.metadata['label'][idx])
 
         img = img / 255
