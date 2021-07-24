@@ -29,6 +29,9 @@ class ISPRS_Dataset(Dataset):
 
         img = img / 255
 
-        return {'img': img,
-                'mask': mask,
-                'label': label}
+        return {
+            'img': img,
+            'mask': mask,
+            'label': label,
+            'file_name': img_name + tile + '.npy'
+        }

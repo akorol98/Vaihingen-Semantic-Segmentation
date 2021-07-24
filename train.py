@@ -12,10 +12,10 @@ from tools.metrics import IoU
 configs = {
     'batch_size': 3,
     'lr': 0.0001,
-    'n_epochs': 10,
+    'n_epochs': 20,
     'num_workers': 0,
     'weight_decay': 1e-8,
-    'path_to_save' : 'checkpoints/'
+    'path_to_save': 'checkpoints/'
 }
 
 
@@ -30,7 +30,7 @@ def train(model, device, epochs, bs, lr, wd, nw):
         model.train()
 
         epoch_loss = 0
-        for batch in tqdm(dataloader):
+        for batch in tqdm(dataloader, desc='Training'):
             imgs = batch['img']
             true_masks = batch['mask']
 
@@ -59,7 +59,7 @@ def validation(model, device, subset='validation'):
     dataloader = DataLoader(dataset, shuffle=False, batch_size=1)
 
     ious = []
-    for batch in tqdm(dataloader):
+    for batch in tqdm(dataloader, desc='Validation'):
         imgs = batch['img']
         imgs = imgs.to(device=device, dtype=torch.float32)
         mask = batch['mask'].numpy()
@@ -90,4 +90,4 @@ if __name__ == '__main__':
         nw=configs['num_workers']
     )
 
-    torch.save(model.state_dict(), configs['path_to_save']+'baseline_Unet.pth')
+    torch.save(model.state_dict(), configs['path_to_save'] + 'baseline_Unet.pth')

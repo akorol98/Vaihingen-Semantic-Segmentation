@@ -4,7 +4,10 @@ import cv2
 
 import os
 from tqdm import tqdm
+from natsort import natsorted
 
+data_path = 'data/ISPRS_semantic_labeling_Vaihingen/top'
+masks_path = 'data/ISPRS_semantic_labeling_Vaihingen_ground_truth_COMPLETE'
 
 def rgb_to_binary_mask(img: np.array, color_map: list = None) -> np.array:
     """
@@ -105,9 +108,11 @@ if __name__ == '__main__':
 
     meta_data = []
 
-    for file in tqdm(os.listdir('data/ISPRS_semantic_labeling_Vaihingen/top')):
-        img = cv2.imread(f'data/ISPRS_semantic_labeling_Vaihingen/top/{file}')
-        label = cv2.imread(f'data/ISPRS_semantic_labeling_Vaihingen_ground_truth_COMPLETE/{file}')
+    files = os.listdir(data_path)
+    files = natsorted(files)
+    for file in tqdm(files):
+        img = cv2.imread(f'{data_path}/{file}')
+        label = cv2.imread(f'{masks_path}/{file}')
 
         binary_mask = rgb_to_binary_mask(label)
         binary_mask = np.moveaxis(binary_mask, 0, -1)
