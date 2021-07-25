@@ -45,7 +45,7 @@ class UNET(nn.Module):
         self.bottleneck = DoubleConv(features[-1], features[-1] * 2)
         self.final_conv = nn.Conv2d(features[0], out_channels, kernel_size=1)
 
-    def forward(self, x):
+    def forward(self, x, mask=None):
         skip_connections = []
 
         for down in self.downs:
@@ -66,7 +66,13 @@ class UNET(nn.Module):
             concat_skip = torch.cat((skip_connection, x), dim=1)
             x = self.ups[idx + 1](concat_skip)
 
-        return self.final_conv(x)
+        x = self.final_conv(x)
+
+        if mask is not None:
+            veto = (mask > -1) * 1
+            x = x * veto
+
+        return x
 
 
 def test():

@@ -1,3 +1,5 @@
+from comet_ml import Experiment
+
 import numpy as np
 from tqdm import tqdm
 import os
@@ -10,16 +12,35 @@ from data.dataset import ISPRS_Dataset
 from models.Unet import UNET
 from tools.metrics import IoU
 
+# Cometml experiment initialization
+with open('api_key.txt', 'r') as file:
+    api_key = file.read()
+experiment = Experiment(
+    api_key=api_key,
+    project_name="Vaihingen-Semantic-Segmentation",
+    workspace="akorol",
+)
+
+
 configs = {
     'batch_size': 3,
     'lr': 0.0001,
     'n_epochs': 1,
-    'num_workers': 0,
+    'num_workers': 4,
     'weight_decay': 1e-8,
+    'seed': 42,
     'split': 'train',
     'train_mode': 'train',
-    'path_to_save': 'checkpoints/'
+    'path_to_save': 'checkpoints/',
+    'model_name': 'baseline_seed_Unet.pth',
+    'path_to_checkpoint':  None #'checkpoints/baseline_lr_10_10_20_Unet.pth'
 }
+
+experiment.log_parameters(configs)
+
+# set malual seed for reproductivity
+torch.manual_seed(configs['seed'])
+np.random.seed(configs['seed'])
 
 if not os.path.exists(configs['path_to_save']):
     os.makedirs(configs['path_to_save'])
@@ -33,6 +54,7 @@ def train(model, device, epochs, bs, lr, wd, nw, split, train_mode):
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, betas=(0.5, 0.999), weight_decay=wd)
     criterion = nn.BCEWithLogitsLoss()
 
+    step = 0
     for i, epoch in enumerate(range(epochs)):
         model.train()
 
@@ -44,7 +66,12 @@ def train(model, device, epochs, bs, lr, wd, nw, split, train_mode):
             imgs = imgs.to(device=device, dtype=torch.float32)
             true_masks = true_masks.to(device=device, dtype=torch.float32)
 
-            pred_masks = model(imgs)
+            if configs['train_mode'] == 'weakly_train_erosion':
+                pred_masks = model(imgs, true_masks)
+                true_masks[true_masks <= -1] = 0
+            else:
+                pred_masks = model(imgs)
+
             loss = criterion(pred_masks, true_masks)
             epoch_loss += loss.item()
 
@@ -53,10 +80,17 @@ def train(model, device, epochs, bs, lr, wd, nw, split, train_mode):
             # nn.utils.clip_grad_value_(net.parameters(), 0.1)
             optimizer.step()
 
+            experiment.log_metric("Loss", loss.item(), step=step)
+            step += 1
+
         validation_iou = validation(model, device)
         train_iou = validation(model, device, subset='train')
+
         print(f'Epoch: {i + 1}, loss: {epoch_loss / len(dataloader)}, '
-              f'IoU_train: {train_iou}, IoU_validation: {validation_iou}')
+              f'mIoU_train: {train_iou}, mIoU_validation: {validation_iou}')
+
+        experiment.log_metric("mIoU_train", train_iou, step=step)
+        experiment.log_metric("mIoU_validation", validation_iou, step=step)
 
 
 def validation(model, device, subset='validation'):
@@ -66,7 +100,7 @@ def validation(model, device, subset='validation'):
     dataloader = DataLoader(dataset, shuffle=False, batch_size=1)
 
     ious = []
-    for batch in tqdm(dataloader, desc='Validation'):
+    for batch in tqdm(dataloader, desc='IoU '+subset):
         imgs = batch['img']
         imgs = imgs.to(device=device, dtype=torch.float32)
         mask = batch['mask'].numpy()
@@ -85,6 +119,8 @@ if __name__ == '__main__':
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     model = UNET(in_channels=3, out_channels=5)
+    if configs['path_to_checkpoint']:
+        model.load_state_dict(torch.load(configs['path_to_checkpoint']))
     model.to(device)
 
     train(
@@ -99,4 +135,4 @@ if __name__ == '__main__':
         train_mode=configs['train_mode']
     )
 
-    torch.save(model.state_dict(), configs['path_to_save'] + 'baseline_Unet.pth')
+    torch.save(model.state_dict(), configs['path_to_save'] + configs['model_name'])

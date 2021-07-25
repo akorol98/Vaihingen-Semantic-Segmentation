@@ -140,3 +140,6 @@ checkpoints
 
 # PyCharm IDE files
 .idea
+
+# Api key for comet ml
+api_key.txt
