@@ -40,9 +40,9 @@ class ISPRS_Dataset(Dataset):
             mask = np.load(f'{self.data_path}/weakly_masks/{img_name + tile}.npy')
         elif self.train_mode == 'train_with_weakly':
             if split == 'train':
-                mask = np.load(f'{self.data_path}/masks/{img_name + tile}.npy')
+                mask = np.load(f'{self.data_path}/masks/{img_name + tile}.npy').astype('int')
             else:
-                mask = np.load(f'{self.data_path}/weakly_masks/{img_name + tile}.npy')
+                mask = np.load(f'{self.data_path}/weakly_masks/{img_name + tile}.npy').astype('int')
         else:
             assert False, 'Wrong training mode! One of the following values is available: ' \
                           '["train", "weakly_train", "train_with_weakly"]'
