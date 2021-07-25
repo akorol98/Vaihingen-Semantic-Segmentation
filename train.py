@@ -3,6 +3,7 @@ from comet_ml import Experiment
 import numpy as np
 from tqdm import tqdm
 import os
+import sys
 
 import torch
 import torch.nn as nn
@@ -13,27 +14,24 @@ from models.Unet import UNET
 from tools.metrics import IoU
 
 # Cometml experiment initialization
-with open('api_key.txt', 'r') as file:
-    api_key = file.read()
 experiment = Experiment(
-    api_key=api_key,
+    api_key='icIskpBA5S6z2xa1l7Fxa1uX2',
     project_name="Vaihingen-Semantic-Segmentation",
     workspace="akorol",
 )
 
-
 configs = {
-    'batch_size': 3,
+    'batch_size': 4,
     'lr': 0.0001,
-    'n_epochs': 1,
+    'n_epochs': 100,
     'num_workers': 4,
     'weight_decay': 1e-8,
     'seed': 42,
     'split': 'train',
     'train_mode': 'train',
     'path_to_save': 'checkpoints/',
-    'model_name': 'baseline_seed_Unet.pth',
-    'path_to_checkpoint':  None #'checkpoints/baseline_lr_10_10_20_Unet.pth'
+    'model_name': 'baseline_augment_Unet.pth',
+    'path_to_checkpoint': 'checkpoints/pretrained_Unet.pth'
 }
 
 experiment.log_parameters(configs)
@@ -53,6 +51,7 @@ def train(model, device, epochs, bs, lr, wd, nw, split, train_mode):
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, betas=(0.5, 0.999), weight_decay=wd)
     criterion = nn.BCEWithLogitsLoss()
+    scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, 0.95, last_epoch=-1, verbose=False)
 
     step = 0
     for i, epoch in enumerate(range(epochs)):
@@ -83,6 +82,8 @@ def train(model, device, epochs, bs, lr, wd, nw, split, train_mode):
             experiment.log_metric("Loss", loss.item(), step=step)
             step += 1
 
+        scheduler.step()
+
         validation_iou = validation(model, device)
         train_iou = validation(model, device, subset='train')
 
@@ -100,7 +101,7 @@ def validation(model, device, subset='validation'):
     dataloader = DataLoader(dataset, shuffle=False, batch_size=1)
 
     ious = []
-    for batch in tqdm(dataloader, desc='IoU '+subset):
+    for batch in tqdm(dataloader, desc='IoU ' + subset):
         imgs = batch['img']
         imgs = imgs.to(device=device, dtype=torch.float32)
         mask = batch['mask'].numpy()
@@ -116,6 +117,32 @@ def validation(model, device, subset='validation'):
 
 
 if __name__ == '__main__':
+
+    if sys.argv[1] == 'baseline':
+        configs['path_to_checkpoint'] = None
+        configs['model_name'] = 'baseline_Unet.pth'
+        configs['n_epochs'] = 50
+        configs['split'] = 'train'
+        configs['train_mode'] = 'train'
+    elif sys.argv[1] == 'pretrain':
+        configs['path_to_checkpoint'] = 'checkpoints/baseline_Unet.pth'
+        configs['model_name'] = 'pretrain_Unet.pth'
+        configs['n_epochs'] = 25
+        configs['split'] = 'weak_train'
+        configs['train_mode'] = 'weakly_train'
+    elif sys.argv[1] == 'finetune':
+        configs['path_to_checkpoint'] = 'checkpoints/pretrain_Unet.pth'
+        configs['model_name'] = 'final_Unet.pth'
+        configs['n_epochs'] = 25
+        configs['split'] = 'train'
+        configs['train_mode'] = 'train'
+    else:
+        assert False, 'Wrong argument! One of the following values is available: ' \
+                      '["baseline", "pretrain", "finetune"]'
+
+    if len(sys.argv) == 3:
+        configs['n_epochs'] = sys.argv[2]
+
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     model = UNET(in_channels=3, out_channels=5)
