@@ -131,11 +131,11 @@ if __name__ == '__main__':
         configs['split'] = 'weak_train'
         configs['train_mode'] = 'weakly_train'
     elif sys.argv[1] == 'finetune':
-        configs['path_to_checkpoint'] = 'checkpoints/pretrain_Unet.pth'
+        configs['path_to_checkpoint'] = None
         configs['model_name'] = 'final_Unet.pth'
-        configs['n_epochs'] = 25
+        configs['n_epochs'] = 200
         configs['split'] = 'train'
-        configs['train_mode'] = 'train'
+        configs['train_mode'] = 'train_with_weakly'
     else:
         assert False, 'Wrong argument! One of the following values is available: ' \
                       '["baseline", "pretrain", "finetune"]'
