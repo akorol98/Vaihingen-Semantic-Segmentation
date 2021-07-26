@@ -95,37 +95,61 @@ def get_img_label(imgs: np.array) -> np.array:
 
 
 def makedirs(dirs: str):
+    """
+    Create tree of directories
+
+    Parameters:
+        dirs: directory tree to be created
+
+    Returns:
+        None
+    """
     if not os.path.exists(dirs):
         os.makedirs(dirs)
+
+    return
 
 
 if __name__ == '__main__':
 
+    # path to image data
     data_path = 'data/ISPRS_semantic_labeling_Vaihingen/top'
+    # path to ground truth masks
     masks_path = 'data/ISPRS_semantic_labeling_Vaihingen_ground_truth_COMPLETE'
 
+    # create directories to save preprocessed images and masks
     makedirs('data/preprocessed/imgs')
     makedirs('data/preprocessed/masks')
 
+    # init list to collect metadata
     meta_data = []
 
+    # get sorted list of the images from input data path
     files = os.listdir(data_path)
     files = natsorted(files)
+
+    # iterate over images and split them on tiles
     for file in tqdm(files):
+        # load original image and mask
         img = cv2.imread(f'{data_path}/{file}')
         label = cv2.imread(f'{masks_path}/{file}')
 
+        # convert RGB mask to multiply channel binary mask
         binary_mask = rgb_to_binary_mask(label)
         binary_mask = np.moveaxis(binary_mask, 0, -1)
 
+        # split mask on tiles
         binary_mask_tiles = split_on_tiles(binary_mask, 200, 200)
         binary_mask_tiles = np.moveaxis(binary_mask_tiles, -1, 1)
 
+        # split image on tiles
         img_tiles = split_on_tiles(img, 200, 200)
         img_tiles = np.moveaxis(img_tiles, -1, 1)
 
+        # obtain labels from mask
         labels = get_img_label(binary_mask_tiles)
 
+        # save tiles to numpy files
         for i in range(0, len(labels)):
             np.save(f'data/preprocessed/imgs/{file[:-4]}_tile{i}.npy', img_tiles[i])
             np.save(f'data/preprocessed/masks/{file[:-4]}_tile{i}.npy', binary_mask_tiles[i])
@@ -135,15 +159,18 @@ if __name__ == '__main__':
                 'tile': f'_tile{i}',
                 'label': [list(labels[i])]
             })
+            # collect metadata
             meta_data.append(temp_df)
 
+    # put metadata to pandas dataframe
     meta_data = pd.concat(meta_data).reset_index(drop=True)
 
+    # split data on train, weak_train and validation
     files = os.listdir('data/ISPRS_semantic_labeling_Vaihingen/top')
     files = list(map(lambda x: x[:-4], files))
-
     meta_data['split'] = 'train'
     meta_data.loc[meta_data.img.isin(files[3:-7]), 'split'] = 'weak_train'
     meta_data.loc[meta_data.img.isin(files[-7:]), 'split'] = 'validation'
 
+    # save metadata
     meta_data.to_csv('data/preprocessed/metadata.csv', index=False)
