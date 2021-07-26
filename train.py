@@ -47,13 +47,13 @@ if not os.path.exists(configs['path_train_output']):
 
 
 def train(model, device, epochs, bs, lr, wd, nw, split, train_mode):
+
     dataset = ISPRS_Dataset('data/preprocessed', 'data/preprocessed/metadata.csv',
                             split=split, train_mode=train_mode)
     dataloader = DataLoader(dataset, shuffle=True, batch_size=bs, num_workers=nw)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, betas=(0.5, 0.999), weight_decay=wd)
     criterion = nn.BCEWithLogitsLoss()
-    scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, 0.95, last_epoch=-1, verbose=False)
 
     step = 0
     losses = []
@@ -85,8 +85,6 @@ def train(model, device, epochs, bs, lr, wd, nw, split, train_mode):
 
             experiment.log_metric("Loss", loss.item(), step=step)
             step += 1
-
-        scheduler.step()
 
         validation_iou = validation(model, device)
         train_iou = validation(model, device, subset='train')
@@ -130,16 +128,16 @@ if __name__ == '__main__':
     if sys.argv[1] == 'baseline':
         configs['path_to_checkpoint'] = None
         configs['model_name'] = 'baseline_Unet.pth'
-        configs['n_epochs'] = 100
+        configs['n_epochs'] = 20
         configs['split'] = 'train'
         configs['train_mode'] = 'train'
-    elif sys.argv[1] == 'baseline_supervised':
-        configs['path_to_checkpoint'] = 'checkpoints/baseline_supervised_Unet.pth'
-        configs['model_name'] = 'pretrain_Unet.pth'
+    elif sys.argv[1] == 'supervised':
+        configs['path_to_checkpoint'] = None
+        configs['model_name'] = 'baseline_supervised_Unet.pth'
         configs['n_epochs'] = 100
         configs['split'] = 'weak_train'
         configs['train_mode'] = 'baseline_supervised'
-    elif sys.argv[1] == 'baseline_semi_supervised':
+    elif sys.argv[1] == 'weakly_supervised':
         configs['path_to_checkpoint'] = None
         configs['model_name'] = 'final_Unet.pth'
         configs['n_epochs'] = 100
@@ -175,5 +173,5 @@ if __name__ == '__main__':
 
     torch.save(model.state_dict(), configs['path_to_save'] + configs['model_name'])
 
-    np.save(configs['path_train_output']+'losses_'+sys.argv[1]+'.npy', losses)
-    np.save(configs['path_train_output']+'ious_'+sys.argv[1]+'.npy', ious)
+    # np.save(configs['path_train_output']+'losses_'+sys.argv[1]+'.npy', losses)
+    # np.save(configs['path_train_output']+'ious_'+sys.argv[1]+'.npy', ious)

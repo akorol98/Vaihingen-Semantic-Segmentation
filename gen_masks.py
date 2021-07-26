@@ -17,23 +17,61 @@ configs = {
 
 
 def makedirs(dirs: str):
+    """
+    Creates tree of directories
+
+    Parameters:
+        dirs: directory tree to be created
+
+    Returns:
+        None
+    """
     if not os.path.exists(dirs):
         os.makedirs(dirs)
 
+    return
 
-def erosion(img):
+
+def erosion(img: np.array):
+    """
+    Corrects borders of masks.
+
+    Parameters:
+        img: input image mask
+
+    Returns:
+        Mask with corrected borders
+    """
     img = img.copy()
+
+    # make dilation with thickness of 10
     for i in range(4):
         img[i] = ndimage.binary_dilation(img[i], iterations=10).astype(int)
 
     orig_img = img.copy()
+
+    # make erosion with thickness of 20
     for i in range(4):
         img[i] = ndimage.binary_erosion(img[i], iterations=20).astype(int)
 
+    # Assign region of erosion with -1
     return img - (orig_img - img)
 
 
 def get_masks(model, dataloader, device, path_to_weakly_masks, path_to_weak_mask_erosion):
+    """
+        Generates masks for given dataloader and correct them with image level labels.
+
+        Parameters:
+            model: model that produces masks
+            dataloader: dataloader
+            device: device
+            path_to_weakly_masks: path to save generated masks
+            path_to_weak_mask_erosion: path to save generated masks with erosion
+
+        Returns:
+            None
+        """
     makedirs(path_to_weakly_masks)
     makedirs(path_to_weak_mask_erosion)
 
