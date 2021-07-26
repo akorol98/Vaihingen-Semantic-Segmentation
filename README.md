@@ -2,11 +2,11 @@
 ![](figures/metrics.png)
 ## Outline:
 
-* [Set Up Conda Environment](#Set Up Conda Environment)
+* [Set Up Conda Environment](#Set-Up-Conda-Environment)
 
-* [Data Gathering and Preprocesing](#Data Gathering and Preprocesing)
+* [Data Gathering and Preprocesing](#Data-Gathering-and-Preprocesing)
 
-* [Model training](#Model training)
+* [Model training](#Model-training)
 
 
 # Set Up Conda Environment 
