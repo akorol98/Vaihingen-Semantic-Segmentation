@@ -143,3 +143,6 @@ checkpoints
 
 # Api key for comet ml
 api_key.txt
+
+# Train outputs
+train_out

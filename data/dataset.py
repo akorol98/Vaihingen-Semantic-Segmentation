@@ -11,7 +11,7 @@ class ISPRS_Dataset(Dataset):
         self.train_mode = train_mode
 
         self.metadata = pd.read_csv(metadata_path)
-        if train_mode == 'train_with_weakly':
+        if (train_mode == 'train_with_weakly') | (train_mode == 'baseline_supervised'):
             self.metadata = self.metadata[
                 (self.metadata['split'] == 'train') |
                 (self.metadata['split'] == 'weak_train')
@@ -36,8 +36,8 @@ class ISPRS_Dataset(Dataset):
         img = np.load(f'{self.data_path}/imgs/{img_name + tile}.npy')
         if self.train_mode == 'train':
             mask = np.load(f'{self.data_path}/masks/{img_name + tile}.npy')
-        elif self.train_mode == 'weakly_train':
-            mask = np.load(f'{self.data_path}/weakly_masks/{img_name + tile}.npy')
+        elif self.train_mode == 'baseline_supervised':
+            mask = np.load(f'{self.data_path}/masks/{img_name + tile}.npy')
         elif self.train_mode == 'train_with_weakly':
             if split == 'train':
                 mask = np.load(f'{self.data_path}/masks/{img_name + tile}.npy').astype('int')

@@ -30,11 +30,10 @@ configs = {
     'split': 'train',
     'train_mode': 'train',
     'path_to_save': 'checkpoints/',
+    'path_train_output': 'train_out/',
     'model_name': 'baseline_augment_Unet.pth',
     'path_to_checkpoint': 'checkpoints/pretrained_Unet.pth'
 }
-
-experiment.log_parameters(configs)
 
 # set malual seed for reproductivity
 torch.manual_seed(configs['seed'])
@@ -42,6 +41,9 @@ np.random.seed(configs['seed'])
 
 if not os.path.exists(configs['path_to_save']):
     os.makedirs(configs['path_to_save'])
+
+if not os.path.exists(configs['path_train_output']):
+    os.makedirs(configs['path_train_output'])
 
 
 def train(model, device, epochs, bs, lr, wd, nw, split, train_mode):
@@ -54,6 +56,8 @@ def train(model, device, epochs, bs, lr, wd, nw, split, train_mode):
     scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, 0.95, last_epoch=-1, verbose=False)
 
     step = 0
+    losses = []
+    ious = []
     for i, epoch in enumerate(range(epochs)):
         model.train()
 
@@ -93,6 +97,11 @@ def train(model, device, epochs, bs, lr, wd, nw, split, train_mode):
         experiment.log_metric("mIoU_train", train_iou, step=step)
         experiment.log_metric("mIoU_validation", validation_iou, step=step)
 
+        losses.append(epoch_loss / len(dataloader))
+        ious.append(validation_iou)
+
+    return np.array(losses), np.array(ious)
+
 
 def validation(model, device, subset='validation'):
     model.eval()
@@ -121,19 +130,19 @@ if __name__ == '__main__':
     if sys.argv[1] == 'baseline':
         configs['path_to_checkpoint'] = None
         configs['model_name'] = 'baseline_Unet.pth'
-        configs['n_epochs'] = 50
+        configs['n_epochs'] = 100
         configs['split'] = 'train'
         configs['train_mode'] = 'train'
-    elif sys.argv[1] == 'pretrain':
-        configs['path_to_checkpoint'] = 'checkpoints/baseline_Unet.pth'
+    elif sys.argv[1] == 'baseline_supervised':
+        configs['path_to_checkpoint'] = 'checkpoints/baseline_supervised_Unet.pth'
         configs['model_name'] = 'pretrain_Unet.pth'
-        configs['n_epochs'] = 25
+        configs['n_epochs'] = 100
         configs['split'] = 'weak_train'
-        configs['train_mode'] = 'weakly_train'
-    elif sys.argv[1] == 'finetune':
+        configs['train_mode'] = 'baseline_supervised'
+    elif sys.argv[1] == 'baseline_semi_supervised':
         configs['path_to_checkpoint'] = None
         configs['model_name'] = 'final_Unet.pth'
-        configs['n_epochs'] = 200
+        configs['n_epochs'] = 100
         configs['split'] = 'train'
         configs['train_mode'] = 'train_with_weakly'
     else:
@@ -141,7 +150,9 @@ if __name__ == '__main__':
                       '["baseline", "pretrain", "finetune"]'
 
     if len(sys.argv) == 3:
-        configs['n_epochs'] = sys.argv[2]
+        configs['n_epochs'] = int(sys.argv[2])
+
+    experiment.log_parameters(configs)
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -150,7 +161,7 @@ if __name__ == '__main__':
         model.load_state_dict(torch.load(configs['path_to_checkpoint']))
     model.to(device)
 
-    train(
+    losses, ious = train(
         model=model,
         device=device,
         epochs=configs['n_epochs'],
@@ -163,3 +174,6 @@ if __name__ == '__main__':
     )
 
     torch.save(model.state_dict(), configs['path_to_save'] + configs['model_name'])
+
+    np.save(configs['path_train_output']+'losses_'+sys.argv[1]+'.npy', losses)
+    np.save(configs['path_train_output']+'ious_'+sys.argv[1]+'.npy', ious)
