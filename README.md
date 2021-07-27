@@ -11,7 +11,7 @@
 
 # Set Up Conda Environment 
 ```
-conda create -f requirements.txt
+conda create -f environment.yml
 ```
 
 # Data Gathering and Preprocesing 
